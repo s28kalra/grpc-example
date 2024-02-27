@@ -1,14 +1,15 @@
 package com.example.grpc.utility;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor.JavaType;
+import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.DynamicMessage.Builder;
 import com.google.protobuf.Message;
 
 public class GrpcUtility {
@@ -45,59 +46,55 @@ public class GrpcUtility {
 		return map;
 	}
 
-//	some modifications are required
 	public static <T extends Message.Builder> T mapToProto(Map<String, Object> map, T builder) {
-		Class<?> builderClass = builder.getClass();
-
-		for (Map.Entry<String, Object> entry : map.entrySet()) {
-			String key = entry.getKey();
-			Object value = entry.getValue();
-
+		List<FieldDescriptor> descriptors = builder.getDescriptorForType().getFields();
+		for (FieldDescriptor descriptor : descriptors) {
 			try {
-				// Get the setter method for the field
-				Method setter = getSetterMethod(builderClass, key);
-				if (setter != null) {
-					// Convert value if necessary
-					Object convertedValue = convertToFieldType(setter.getParameterTypes()[0], value);
-					// Invoke the setter method to set the field
-					setter.invoke(builder, convertedValue);
+				Object value = map.get(descriptor.getName());
+				if (descriptor.isRepeated() && value instanceof Collection collection) {
+					for (Object o : collection) {
+						builder.addRepeatedField(descriptor, convertToFieldType(descriptor, o));
+					}
+
+				} else {
+					builder.setField(descriptor, convertToFieldType(descriptor, value));
 				}
-			} catch (IllegalAccessException | InvocationTargetException e) {
-				e.printStackTrace(); // Handle exceptions properly
+
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 		}
-
 		return builder;
 	}
 
-	// Retrieve the setter method for the field
-	private static Method getSetterMethod(Class<?> clazz, String fieldName) {
-		String setterName = "set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
-		for (Method method : clazz.getMethods()) {
-			if (method.getName().equals(setterName) && method.getParameterCount() == 1) {
-				return method;
+	@SuppressWarnings({ "unchecked" })
+	private static Object convertToFieldType(FieldDescriptor descriptor, Object value) {
+		switch (descriptor.getJavaType()) {
+		case INT:
+			return Integer.valueOf(value.toString());
+		case LONG:
+			return Long.valueOf(value.toString());
+		case FLOAT:
+			return Float.valueOf(value.toString());
+		case DOUBLE:
+			return Double.valueOf(value.toString());
+		case BOOLEAN:
+			return Boolean.valueOf(value.toString());
+		case STRING:
+			return value.toString();
+		case ENUM: {
+			return descriptor.getEnumType().findValueByName(value.toString());
+		}
+		case MESSAGE: {
+			if (value instanceof Map map) {
+				Builder builder = DynamicMessage.newBuilder(descriptor.getMessageType());
+				return mapToProto(map, builder).build();
 			}
 		}
-		return null;
-	}
 
-	// Convert value to the type expected by the setter method
-	private static Object convertToFieldType(Class fieldType, Object value) {
-		if (fieldType == String.class) {
-			return value.toString();
-		} else if (fieldType == Integer.class || fieldType == int.class) {
-			return Integer.parseInt(value.toString());
-		} else if (fieldType == Long.class || fieldType == long.class) {
-			return Long.parseLong(value.toString());
-		} else if (fieldType == Double.class || fieldType == double.class) {
-			return Double.parseDouble(value.toString());
-		} else if (fieldType.isEnum()) {
-			return Enum.valueOf(fieldType, value.toString());
-		} else if (fieldType == Integer.class || fieldType == int.class) {
-			return Integer.parseInt(value.toString());
+		default:
+			return null;
 		}
-		// Add more conversions as needed
-		return value;
 	}
 
 }
