@@ -2,47 +2,51 @@ syntax = "proto3";
 
 package com.example.kotlin.grpc.config;
 
-option java_multiple_files=true;
-
-enum Status{
-  SUCCESS =0;
-  FAILURE =1;
+option java_multiple_files = true;
+enum Status {
+	SUCCESS = 0;
+	FAILURE = 1;
 }
 
-message CalculatorRequest{
-  int32 first = 1;
-  int32 second = 2;
+message CalculatorRequest {
+	int32 first = 1;
+	int32 second = 2;
 }
 
-message CalculatorResponse{
-  Status status= 1;
-  int32 result = 2;
-  string message = 3;
+message CalculatorResponse {
+	Status status = 1;
+	int32 result = 2;
+	string message = 3;
 }
 
-message DoubleCalculatorResponse{
-  Status status= 1;
-  double result = 2;
-  string message = 3;
+message DoubleCalculatorResponse {
+	Status status = 1;
+	double result = 2;
+	string message = 3;
 }
 
-message OneNumberRequest{
-  int32 num =1;
+message OneNumberRequest {
+	int32 num = 1;
 }
 
-message StreamCalculatorResponse{
-  double result = 1;
-  string time = 2;
+message StreamCalculatorResponse {
+	double result = 1;
+	string time = 2;
 }
 
-service CalculatorService{
-  rpc add(CalculatorRequest) returns (CalculatorResponse);
-  rpc subtract(CalculatorRequest) returns (CalculatorResponse);
-  rpc multiply(CalculatorRequest) returns (CalculatorResponse);
-  rpc divide(CalculatorRequest) returns (CalculatorResponse);
+message GrpcErrorResponse {
+	string error = 3;
+}
 
-  rpc getStreamOfPrimeNumbers(OneNumberRequest) returns (stream StreamCalculatorResponse);
-  rpc calculateAverage(stream OneNumberRequest) returns (DoubleCalculatorResponse);
-  rpc squares(stream OneNumberRequest) returns (stream StreamCalculatorResponse);
-
+service CalculatorService {
+	rpc add (CalculatorRequest) returns (CalculatorResponse);
+	rpc subtract (CalculatorRequest) returns (CalculatorResponse);
+	rpc multiply (CalculatorRequest) returns (CalculatorResponse);
+	rpc divide (CalculatorRequest) returns (CalculatorResponse);
+	rpc getStreamOfPrimeNumbers (OneNumberRequest) returns (stream
+	StreamCalculatorResponse);
+	rpc calculateAverage (stream OneNumberRequest) returns
+	(DoubleCalculatorResponse);
+	rpc squares (stream OneNumberRequest) returns (stream
+	StreamCalculatorResponse);
 }
